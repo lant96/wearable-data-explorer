@@ -1,0 +1,35 @@
+[project]
+name = "wearable-data-explorer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Athanasia", email = "athanasia.lant@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pandas>=3.0.6",
+    "plotly>=7.1.0",
+    "pydantic>=2.13.5",
+    "requests>=2.34.2",
+    "streamlit>=1.65.0",
+]
+
+[project.scripts]
+wearable-data-explorer = "wearable_data_explorer:main"
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
