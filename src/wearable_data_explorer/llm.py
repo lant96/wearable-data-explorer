@@ -8,6 +8,7 @@ its JSON reply is validated as a QuerySpec, and analysis.py does the computing.
 from __future__ import annotations
 
 import os
+import time
 
 import pandas as pd
 import requests
@@ -22,6 +23,7 @@ load_dotenv()
 
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 DEFAULT_MODEL = "gemini-3.8-flash"
+RETRY_STATUS = {429, 500, 502, 503, 504}
 
 
 class LLMError(RuntimeError):
@@ -62,24 +64,37 @@ RULES:
 
 
 def _call_gemini(system: str, user: str, api_key: str, model: str) -> str:
-    """One request to the Gemini API; returns the raw text of the reply."""
-    try:
-        r = requests.post(
-            API_URL.format(model=model),
-            headers={"x-goog-api-key": api_key},
-            json={
-                "systemInstruction": {"parts": [{"text": system}]},
-                "contents": [{"role": "user", "parts": [{"text": user}]}],
-                "generationConfig": {"responseMimeType": "application/json", "temperature": 0},
-            },
-            timeout=60,
-        )
-        r.raise_for_status()
-        return r.json()["candidates"][0]["content"]["parts"][0]["text"]
-    except requests.RequestException as e:
-        raise LLMError(f"Could not reach the Gemini API: {e}") from e
-    except (KeyError, IndexError) as e:
-        raise LLMError("The Gemini API returned no answer (it may have been blocked).") from e
+    """Send one question to Gemini and return the text of its reply.
+
+    Temporary errors (like 503 "overloaded") are retried, up to 3 attempts in total.
+    """
+    url = API_URL.format(model=model)
+    headers = {"x-goog-api-key": api_key}
+    body = {
+        "systemInstruction": {"parts": [{"text": system}]},
+        "contents": [{"role": "user", "parts": [{"text": user}]}],
+        "generationConfig": {"responseMimeType": "application/json", "temperature": 0},
+    }
+
+    for attempt in range(1, 4):
+        try:
+            response = requests.post(url, headers=headers, json=body, timeout=60)
+        except requests.RequestException as e:
+            raise LLMError(f"Could not reach the Gemini API: {e}") from e
+
+        if response.status_code == 200:
+            try:
+                return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+            except (KeyError, IndexError) as e:
+                raise LLMError("Gemini returned no answer (it may have been blocked).") from e
+
+        if response.status_code in RETRY_STATUS and attempt < 3:
+            time.sleep(2 * attempt)
+            continue
+
+        raise LLMError(f"Gemini API error {response.status_code}: {response.text[:300]}")
+
+    raise LLMError("Gemini did not answer.")
 
 
 def question_to_spec(
