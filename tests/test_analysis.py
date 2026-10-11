@@ -70,3 +70,9 @@ def test_real_data_weekday_matches_manual_pandas():
     r = summarise(df, "steps", by="weekday").set_index("weekday")
     manual = df.dropna(subset=["steps"]).groupby(df["date"].dt.dayofweek)["steps"].mean()
     assert r["value"].tolist() == pytest.approx(manual.tolist())
+
+
+def test_median_by_participant(small):
+    r = summarise(small, "steps", agg="median", by="participant").set_index("participant")
+    assert r.loc["2", "value"] == pytest.approx(2006.5)  # median of 2000..2013
+    assert r.loc["1", "n"] == 13

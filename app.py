@@ -44,6 +44,7 @@ st.write(
     "Ask a question about daily smartwatch data from 12 people. The app shows how it "
     "understood your question, so you can check it before trusting the answer."
 )
+st.caption("Descriptive statistics only, not medical advice.")
 
 with st.form("ask"):
     question = st.text_input("Your question", placeholder=EXAMPLES[0])
