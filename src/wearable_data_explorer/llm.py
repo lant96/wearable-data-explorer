@@ -23,7 +23,7 @@ load_dotenv()
 
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 DEFAULT_MODEL = "gemini-3.8-flash"
-RETRY_STATUS = {429, 500, 502, 503, 504}
+RETRY_STATUS = {500, 502, 503, 504}
 
 
 class LLMError(RuntimeError):
@@ -92,7 +92,7 @@ def _call_gemini(system: str, user: str, api_key: str, model: str) -> str:
             time.sleep(2 * attempt)
             continue
 
-        raise LLMError(f"Gemini API error {response.status_code}: {response.text[:300]}")
+        raise LLMError(f"Gemini API error {response.status_code}: {response.text[:800]}")
 
     raise LLMError("Gemini did not answer.")
 
