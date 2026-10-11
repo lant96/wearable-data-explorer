@@ -41,18 +41,18 @@ except FileNotFoundError:
 
 st.title("Wearable Data Explorer")
 st.write(
-    "Ask a question about daily smartwatch data from 12 people. The app shows how it "
-    "understood your question, so you can check it before trusting the answer."
+    "Ask questions about daily smartwatch data from 12 participants. "
+    "Explore the results and inspect how each question is translated into an analysis."
 )
 st.caption("Descriptive statistics only, not medical advice.")
 
 with st.form("ask"):
-    question = st.text_input("Your question", placeholder=EXAMPLES[0])
+    question = st.text_input("Ask a question", placeholder=EXAMPLES[0])
     submitted = st.form_submit_button("Ask")
 if submitted and question.strip():
     ask(question.strip())
 
-st.caption("Or try an example:")
+st.caption("Try an example:")
 columns = st.columns(len(EXAMPLES))
 for i, example in enumerate(EXAMPLES):
     if columns[i].button(example):
@@ -61,17 +61,17 @@ for i, example in enumerate(EXAMPLES):
 if "spec_text" not in st.session_state:
     st.stop()
 
-st.subheader("1. How I understood your question")
-st.text_area("Query spec (you can edit this and the result updates)", key="spec_text", height=260)
 try:
     spec = QuerySpec.model_validate_json(st.session_state["spec_text"])
 except ValidationError as e:
     st.error(f"This spec is not valid: {e.errors()[0]['msg']} ({e.errors()[0]['loc']})")
     st.stop()
-if spec.explanation:
-    st.info(spec.explanation)
 
-st.subheader("2. Result")
+st.subheader("Results")
+
+if spec.explanation:
+    st.caption(spec.explanation)
+
 try:
     result = run(df, spec)
 except QueryError as e:
@@ -82,10 +82,21 @@ assert spec.metric is not None
 metric = METRICS_BY_NAME[spec.metric]
 
 if spec.by == "none":
-    st.metric(f"{metric.label} ({spec.agg})", f"{result['value'].iloc[0]:.2f} {metric.unit}")
+    st.metric(
+        f"{metric.label} ({spec.agg})",
+        f"{result['value'].iloc[0]:.2f} {metric.unit}",
+    )
     st.caption(f"Based on {result['n'].iloc[0]} recorded days.")
 else:
     st.plotly_chart(make_chart(result, spec), width="stretch")
     st.caption("Hover over a point or bar to see how many recorded days it is based on.")
     with st.expander("Data table"):
         st.dataframe(result)
+
+with st.expander("Analysis details"):
+    st.caption("Review or edit the query used to generate the results.")
+    st.text_area(
+        "Query specification (JSON)",
+        key="spec_text",
+        height=260,
+    )
