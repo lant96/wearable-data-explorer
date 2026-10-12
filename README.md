@@ -11,7 +11,7 @@ A research prototype for exploring wearable data through natural-language questi
 
 ## Overview
 
-The app uses daily Withings ScanWatch data from 12 participants over 290 days, covering steps, activity, heart rate and sleep.See ([`data/README.md`](data/README.md)) for the dataset source and documentation.
+The app uses daily Withings ScanWatch data from 12 participants over 290 days, covering steps, activity, heart rate and sleep. See ([`data/README.md`](data/README.md)) for the dataset source and documentation.
 
 
 ---

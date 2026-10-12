@@ -61,42 +61,41 @@ for i, example in enumerate(EXAMPLES):
 if "spec_text" not in st.session_state:
     st.stop()
 
-try:
-    spec = QuerySpec.model_validate_json(st.session_state["spec_text"])
-except ValidationError as e:
-    st.error(f"This spec is not valid: {e.errors()[0]['msg']} ({e.errors()[0]['loc']})")
-    st.stop()
-
-st.subheader("Results")
-
-if spec.explanation:
-    st.caption(spec.explanation)
-
-try:
-    result = run(df, spec)
-except QueryError as e:
-    st.warning(f"Cannot answer: {e}")
-    st.stop()
-
-assert spec.metric is not None
-metric = METRICS_BY_NAME[spec.metric]
-
-if spec.by == "none":
-    st.metric(
-        f"{metric.label} ({spec.agg})",
-        f"{result['value'].iloc[0]:.2f} {metric.unit}",
-    )
-    st.caption(f"Based on {result['n'].iloc[0]} recorded days.")
-else:
-    st.plotly_chart(make_chart(result, spec), width="stretch")
-    st.caption("Hover over a point or bar to see how many recorded days it is based on.")
-    with st.expander("Data table"):
-        st.dataframe(result)
+results = st.container()
 
 with st.expander("Analysis details"):
     st.caption("Review or edit the query used to generate the results.")
-    st.text_area(
-        "Query specification (JSON)",
-        key="spec_text",
-        height=260,
-    )
+    spec_text = st.text_area("Query specification (JSON)", key="spec_text", height=260)
+
+with results:
+    try:
+        spec = QuerySpec.model_validate_json(spec_text)
+    except ValidationError as e:
+        st.error(f"This spec is not valid: {e.errors()[0]['msg']} ({e.errors()[0]['loc']})")
+        st.stop()
+
+    st.subheader("Results")
+
+    if spec.explanation:
+        st.caption(spec.explanation)
+
+    try:
+        result = run(df, spec)
+    except QueryError as e:
+        st.warning(f"Cannot answer: {e}")
+        st.stop()
+
+    assert spec.metric is not None
+    metric = METRICS_BY_NAME[spec.metric]
+
+    if spec.by == "none":
+        st.metric(
+            f"{metric.label} ({spec.agg})",
+            f"{result['value'].iloc[0]:.2f} {metric.unit}",
+        )
+        st.caption(f"Based on {result['n'].iloc[0]} recorded days.")
+    else:
+        st.plotly_chart(make_chart(result, spec), width="stretch")
+        st.caption("Hover over a point or bar to see how many recorded days it is based on.")
+        with st.expander("Data table"):
+            st.dataframe(result)
